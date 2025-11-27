@@ -1,0 +1,15 @@
+# Data directories
+*/data
+
+# Environment files
+.env
+
+# Python cache
+*__pycache__
+*.pyc
+*.pyo
+
+# Model checkpoints
+*.pth
+*.pt
+checkpoints/
