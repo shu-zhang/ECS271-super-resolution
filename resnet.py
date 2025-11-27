@@ -52,18 +52,18 @@ transform = transforms.Compose([
 
 
 train_dataset = DIV2KDataset(scale=4, mode='train', crop_size=192, transform=transform)
-valid_dataset = DIV2KDataset(scale=4, mode='valid', crop_size=None, transform=transform)
+valid_dataset = DIV2KDataset(scale=4, mode='valid', crop_size=192, transform=transform)
 
 # Create DataLoaders
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=0)
-valid_loader = DataLoader(valid_dataset, batch_size=100, shuffle=False, num_workers=0)
+valid_loader = DataLoader(valid_dataset, batch_size=10, shuffle=False, num_workers=0)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 model = ResNet(scale_factor=4).to(device)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-num_epochs = 2
+num_epochs = 25
 
 for epoch in range(num_epochs):
     model.train()
@@ -89,3 +89,71 @@ for epoch in range(num_epochs):
             print(f"Epoch [{epoch+1}/{num_epochs}], Step [{i+1}/{len(train_loader)}], Loss: {loss.item():.4f}")
 
 print("Training finished.")
+
+
+# Visualize results
+model.eval()
+with torch.no_grad():
+    # Get a batch from validation loader
+    val_lr, val_hr = next(iter(valid_loader))
+    val_lr = val_lr.to(device)
+    
+    # Predict
+    val_output = model(val_lr)
+    
+    # Move to CPU for plotting
+    val_lr = val_lr.cpu()
+    val_hr = val_hr.cpu()
+    val_output = val_output.cpu()
+    
+    # Define zoom parameters (center crop)
+    h, w = val_hr.shape[2], val_hr.shape[3]
+    cx, cy = h // 2, w // 2
+    crop_size = 50  # Size of the crop in HR pixels
+    
+    # Calculate crop coordinates
+    hr_y1, hr_y2 = cx - crop_size // 2, cx + crop_size // 2
+    hr_x1, hr_x2 = cy - crop_size // 2, cy + crop_size // 2
+    
+    # LR coordinates (scale factor 4)
+    lr_y1, lr_y2 = hr_y1 // 4, hr_y2 // 4
+    lr_x1, lr_x2 = hr_x1 // 4, hr_x2 // 4
+
+    # Plot
+    plt.figure(figsize=(15, 10))
+    
+    # Full images
+    plt.subplot(2, 3, 1)
+    plt.imshow(val_lr[0].permute(1, 2, 0).numpy())
+    plt.title("LR Input")
+    plt.axis('off')
+    
+    plt.subplot(2, 3, 2)
+    plt.imshow(val_output[0].permute(1, 2, 0).clamp(0, 1).numpy())
+    plt.title("Model Output")
+    plt.axis('off')
+    
+    plt.subplot(2, 3, 3)
+    plt.imshow(val_hr[0].permute(1, 2, 0).numpy())
+    plt.title("Ground Truth HR")
+    plt.axis('off')
+
+    # Zoomed patches
+    plt.subplot(2, 3, 4)
+    # Display LR patch
+    plt.imshow(val_lr[0, :, lr_y1:lr_y2, lr_x1:lr_x2].permute(1, 2, 0).numpy())
+    plt.title("LR Patch (Zoomed)")
+    plt.axis('off')
+
+    plt.subplot(2, 3, 5)
+    plt.imshow(val_output[0, :, hr_y1:hr_y2, hr_x1:hr_x2].permute(1, 2, 0).clamp(0, 1).numpy())
+    plt.title("Model Output Patch (Zoomed)")
+    plt.axis('off')
+
+    plt.subplot(2, 3, 6)
+    plt.imshow(val_hr[0, :, hr_y1:hr_y2, hr_x1:hr_x2].permute(1, 2, 0).numpy())
+    plt.title("Ground Truth Patch (Zoomed)")
+    plt.axis('off')
+    
+    plt.tight_layout()
+    plt.show()
