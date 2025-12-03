@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 from dataset import DIV2KDataset
-from src.model_resnet_sr import ResNetSR
+from model_resnet_sr import ResNetSR
 import torchvision.transforms as transforms
 from utils import saveModel
 
