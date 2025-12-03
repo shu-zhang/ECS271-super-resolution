@@ -1,35 +1,75 @@
 import os
+import glob
 import random
-from PIL import Image
+import kagglehub
 from torch.utils.data import Dataset
-import torchvision.transforms.functional as TF
+from torchvision.transforms import functional as F
+from PIL import Image
+
+path = kagglehub.dataset_download("takihasan/div2k-dataset-for-super-resolution")
+print (f"Dataset downloaded to: {path}")
 
 class DIV2KDataset(Dataset):
-    def __init__(self, hr_dir, lr_dir, crop_size=192, scale=4):
-        self.hr_dir = hr_dir
-        self.lr_dir = lr_dir
-        self.crop_size = crop_size
+    def __init__(self, root_dir=path, scale=4, mode='train', crop_size=None, transform=None):
+        self.root_dir = root_dir
         self.scale = scale
+        self.mode = mode
+        self.crop_size = crop_size
+        self.transform = transform
         
-        self.img_names = sorted([f for f in os.listdir(hr_dir) if f.endswith('.png')])
-
+        if mode == 'train':
+            self.hr_dir = os.path.join(root_dir, 'Dataset', 'DIV2K_train_HR')
+            if scale == 2:
+                self.lr_dir = os.path.join(root_dir, 'Dataset', 'DIV2K_train_LR_bicubic', 'X2')
+            elif scale == 4:
+                self.lr_dir = os.path.join(root_dir, 'Dataset', 'DIV2K_train_LR_bicubic_X4', 'X4')
+            else:
+                raise ValueError("Scale must be 2 or 4")
+        elif mode == 'valid':
+            self.hr_dir = os.path.join(root_dir, 'Dataset', 'DIV2K_valid_HR')
+            if scale == 2:
+                self.lr_dir = os.path.join(root_dir, 'Dataset', 'DIV2K_valid_LR_bicubic', 'X2')
+            elif scale == 4:
+                self.lr_dir = os.path.join(root_dir, 'Dataset', 'DIV2K_valid_LR_bicubic_X4', 'X4')
+            else:
+                raise ValueError("Scale must be 2 or 4")
+        
+            
+        self.hr_files = sorted(glob.glob(os.path.join(self.hr_dir, '*.png')))
+        self.lr_files = []
+        for hr_path in self.hr_files:
+            filename = os.path.basename(hr_path)
+            file_id = filename.split('.')[0]
+            lr_filename = f"{file_id}x{self.scale}.png"
+            self.lr_files.append(os.path.join(self.lr_dir, lr_filename))
+        
     def __len__(self):
-        return len(self.img_names)
-
+        return len(self.hr_files)
+    
     def __getitem__(self, idx):
-        name = self.img_names[idx]
-        hr = Image.open(os.path.join(self.hr_dir, name)).convert("RGB")
-        lr_name = name.replace(".png", f"x{self.scale}.png")
-        lr = Image.open(os.path.join(self.lr_dir, lr_name)).convert("RGB")
-
-        # random patch
-        lr_w, lr_h = lr.size
-        lr_ps = self.crop_size // self.scale
+        hr_path = self.hr_files[idx]
+        lr_path = self.lr_files[idx]
         
-        x = random.randint(0, lr_w - lr_ps)
-        y = random.randint(0, lr_h - lr_ps)
+        hr_image = Image.open(hr_path).convert('RGB')
+        lr_image = Image.open(lr_path).convert('RGB')
+        
+        if self.crop_size:
+            # Random crop
+            w, h = lr_image.size
+            lr_crop_size = self.crop_size // self.scale
+            
+            if w < lr_crop_size or h < lr_crop_size:
+                 pass
+            else:
+                i = random.randint(0, h - lr_crop_size)
+                j = random.randint(0, w - lr_crop_size)
+                
+                lr_image = F.crop(lr_image, i, j, lr_crop_size, lr_crop_size)
+                hr_image = F.crop(hr_image, i * self.scale, j * self.scale, self.crop_size, self.crop_size)
+        
+        if self.transform:
+            hr_image = self.transform(hr_image)
+            lr_image = self.transform(lr_image)
+            
+        return lr_image, hr_image
 
-        lr = TF.crop(lr, y, x, lr_ps, lr_ps)
-        hr = TF.crop(hr, y * self.scale, x * self.scale, self.crop_size, self.crop_size)
-
-        return TF.to_tensor(lr), TF.to_tensor(hr)
