@@ -39,7 +39,7 @@ model = SwinIR(
 ).to(device)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-num_epochs = 5
+num_epochs = 25
 
 training_loss_epoch = []
 valid_loss_epoch = []
