@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 from dataset import DIV2KDataset
 from model_resnet_sr import ResNetSR
+from model_swinir_tiny import SwinIR_Tiny
 from utils import calc_psnr
 
 # -------------------------
@@ -14,9 +15,9 @@ from utils import calc_psnr
 # -------------------------
 SCALE = 4
 CROP = 192
-BATCH = 4
+BATCH = 32
 LR = 1e-4
-EPOCHS = 5
+EPOCHS = 30
 
 root = os.path.dirname(os.path.abspath(__file__))
 TRAIN_HR = f"{root}/data/div2k/Dataset/DIV2K_train_HR"
@@ -41,6 +42,7 @@ val_loader = DataLoader(val_set, batch_size=1)
 # -------------------------
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model = ResNetSR(scale_factor=SCALE).to(device)
+#model = SwinIR_Tiny(upscale=SCALE).to(device)
 criterion = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=LR)
 
