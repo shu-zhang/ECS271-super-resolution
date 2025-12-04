@@ -59,6 +59,11 @@ def evaluate(model_type, weights_path, save_plots=True, output_dir='analysis_res
     else:
         print("No weights path provided. Using initialized model (correct for Bicubic).")
 
+    # Print model param count
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Model '{model_type}': Total params: {total_params:,}, Trainable params: {trainable_params:,}")
+
     model.eval()
 
     psnr_list = []
