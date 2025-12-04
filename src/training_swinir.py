@@ -6,7 +6,9 @@ from torch.utils.data import DataLoader, random_split
 from dataset import DIV2KDataset
 import torchvision.transforms as transforms
 from swinir import SwinIR
-from utils import saveModel
+from utils import saveArrays, saveModel
+from pathlib import Path
+
 
 transform = transforms.Compose([
     transforms.ToTensor(),
@@ -27,7 +29,7 @@ train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_worker
 valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=False, num_workers=0)
 test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
 
-
+script_dir = Path(__file__).parent 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 model = SwinIR(
@@ -71,7 +73,7 @@ def train():
 
         training_loss_epoch.append(running_loss / len(train_loader))
         validate(model)
-        saveModel(model, "../model/swinir/swinir{}.pth".format(epoch + 1))
+        saveModel(model, script_dir.joinpath("..", "model", "swinir", "swinir{}.pth".format(epoch + 1)))
     print("Training finished.")
 
 
@@ -91,6 +93,14 @@ def validate(model):
 
 train()
 
+print("Training Loss SwinIr")
+print(training_loss_epoch)
+print("------------------------------------------------------")
+print("Validation Loss SwinIr")
+print(valid_loss_epoch)
+
+saveArrays(training_loss_epoch, valid_loss_epoch, script_dir.joinpath("..", "plots", "swinir_arrays.npz"))
+
 #plot losses
 plt.figure()
 plt.plot([i for i in range(1, num_epochs + 1)], training_loss_epoch)
@@ -98,7 +108,11 @@ plt.plot([i for i in range(1, num_epochs + 1)], valid_loss_epoch)
 plt.title("Training and Validation Loss")
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
-plt.show() 
+plt.show()
+plt.savefig("swinir.png") 
+
+
+
 
 
 # Visualize results
