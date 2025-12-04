@@ -1,6 +1,7 @@
 import torch
 import math
 from matplotlib import pyplot as plt
+import numpy as np
 
 # --- PSNR ---
 def calc_psnr(sr, hr, max_val=1.0):
@@ -71,3 +72,17 @@ def visualization(model, loader , device):
             
             plt.tight_layout()
             plt.show()
+
+def saveArrays(array_a, array_b, path):
+    array_a = np.array(array_a)
+    array_b = np.array(array_b)
+    file_name = path
+
+    np.savez(file_name, arrayA=array_a, arrayB=array_b)
+
+def loadArrays(file_name, array_a_name, array_b_name):
+    loaded_data = np.load(file_name)
+    a = loaded_data[array_a_name]
+    b = loaded_data[array_b_name]
+
+    return a, b

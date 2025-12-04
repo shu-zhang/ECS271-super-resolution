@@ -6,7 +6,8 @@ from torch.utils.data import DataLoader, random_split
 from dataset import DIV2KDataset
 from model_resnet_sr import ResNetSR
 import torchvision.transforms as transforms
-from utils import saveModel
+from utils import saveModel, saveArrays
+from pathlib import Path
 
 transform = transforms.Compose([
     transforms.ToTensor(),
@@ -28,6 +29,7 @@ valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=False, num_worker
 test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
 
 
+script_dir = Path(__file__).parent 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 model = ResNetSR(scale_factor=4).to(device)
@@ -65,7 +67,7 @@ def train():
 
         training_loss_epoch.append(running_loss / len(train_loader))
         validate(model)
-        saveModel(model, "../model/resnet/resnet_epoch_{}.pth".format(epoch + 1))
+        saveModel(model, script_dir.joinpath("..", "model", "resnet", "resnet_epoch_{}.pth".format(epoch + 1)))
     print("Training finished.")
 
 
@@ -85,6 +87,14 @@ def validate(model):
 
 train()
 
+print("Training Loss ResNet")
+print(training_loss_epoch)
+print("------------------------------------------------------")
+print("Validation Loss ResNet")
+print(valid_loss_epoch)
+
+saveArrays(training_loss_epoch, valid_loss_epoch, script_dir.joinpath("..", "plots", "resnet_arrays.npz"))
+
 #plot losses
 plt.figure()
 plt.plot([i for i in range(1, num_epochs + 1)], training_loss_epoch)
@@ -92,7 +102,11 @@ plt.plot([i for i in range(1, num_epochs + 1)], valid_loss_epoch)
 plt.title("Training and Validation Loss")
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
-plt.show() 
+plt.show()
+
+plt.savefig("resnet.png") 
+
+
 
 
 # Visualize results
