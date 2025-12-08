@@ -50,7 +50,7 @@ This script will automatically:
     
 3.  Evaluate all models and save:
     
-    *   PSNR / SSIM / inference time
+    *   PSNR / inference time
         
     *   Visual results (LR / SR / HR)
         
@@ -72,6 +72,7 @@ Project Structure
 
 ```
 analysis_results_test/           # visual comparisons
+single_image_analysis/
 images/                          # training loss plots
 
 model/                           # saved trained models
@@ -81,6 +82,7 @@ model/                           # saved trained models
 plots/                           # saved training arrays
 
 src/
+  analyse_single_image.py
   dataset.py
   model_bicubic.py
   model_resnet_sr.py
